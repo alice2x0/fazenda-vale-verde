@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a3a14">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>Fazenda Vale Verde</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#3A6434;min-height:100vh;display:flex;flex-direction:column}
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:24px}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* OFFLINE BANNER */
+.offline-banner{background:#c0392b;color:#fff;text-align:center;padding:8px;font-size:13px;font-weight:600;display:none}
+.offline-banner.show{display:block}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;background:#1a3a14;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.login-logo{margin-bottom:16px}
+.login-title{color:#fff;font-size:28px;font-weight:800;text-align:center;margin-bottom:6px}
+.login-sub{color:rgba(255,255,255,0.55);font-size:14px;text-align:center;margin-bottom:36px}
+.login-card{background:#253f20;border-radius:18px;padding:28px 24px;width:100%;max-width:360px}
+.login-card h2{color:#fff;font-size:18px;font-weight:700;margin-bottom:20px}
+.lfield{margin-bottom:14px}
+.lfield label{color:#7aab6a;font-size:12px;font-weight:500;display:block;margin-bottom:5px}
+.lfield input{background:#1E3D1A;border:none;border-radius:10px;padding:13px 14px;color:#fff;font-size:15px;font-family:'Inter',sans-serif;width:100%;outline:none}
+.lfield input::placeholder{color:rgba(255,255,255,0.3)}
+.btn-login{background:#00D4D4;border:none;border-radius:12px;padding:15px;color:#0a2a2a;font-size:16px;font-weight:700;cursor:pointer;width:100%;font-family:'Inter',sans-serif;margin-top:6px}
+.btn-register{background:transparent;border:1px solid rgba(255,255,255,0.2);border-radius:12px;padding:13px;color:rgba(255,255,255,0.7);font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:'Inter',sans-serif;margin-top:10px}
+.login-error{color:#ff6b6b;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+.login-toggle{color:rgba(255,255,255,0.5);font-size:13px;text-align:center;margin-top:16px;cursor:pointer}
+.login-toggle span{color:#00D4D4;font-weight:600}
+
+/* HEADER */
+.hdr{background:#1a3a14;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0}
+.burger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px}
+.burger span{display:block;width:24px;height:2px;background:#fff;border-radius:2px}
+.back-btn{width:36px;height:36px;background:#1a3a14;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* SIDEBAR */
+.sb-ov{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:none}
+.sb-ov.open{display:block}
+.sidebar{position:fixed;top:0;right:-260px;width:230px;height:100%;background:#1a3a14;z-index:101;transition:right .25s ease;padding:56px 24px 24px;display:flex;flex-direction:column;gap:0;overflow-y:auto}
+.sidebar.open{right:0}
+.sb-item{color:#fff;text-decoration:none;font-size:15px;font-weight:600;cursor:pointer;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:10px}
+.sb-item:last-child{border-bottom:none}
+.sb-user{color:rgba(255,255,255,0.45);font-size:12px;padding:0 0 16px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:4px}
+.trash-count{background:#c0392b;color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:2px 7px;margin-left:auto}
+
+/* HERO */
+.hero{background:#1a3a14;padding:28px 20px 24px;text-align:center;flex-shrink:0}
+.hero-icon{width:72px;height:72px;margin:0 auto 6px;cursor:pointer;position:relative}
+.hero-icon-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.35);border-radius:50%;display:none;align-items:center;justify-content:center}
+.hero-icon:hover .hero-icon-overlay{display:flex}
+.hero h1{color:#fff;font-size:34px;font-weight:800;line-height:1.15;letter-spacing:-0.5px;cursor:pointer}
+.hero-edit-hint{color:rgba(255,255,255,0.35);font-size:10px;margin-bottom:6px}
+.hero p{color:rgba(255,255,255,0.7);font-size:14px}
+.sync-status{font-size:11px;margin-top:6px;font-weight:600}
+.sync-ok{color:#7aab6a}
+.sync-pending{color:#f0a500}
+
+/* HOME BODY */
+.hbody{padding:18px;display:flex;flex-direction:column;gap:14px}
+.search{background:#fff;border-radius:12px;display:flex;align-items:center;gap:10px;padding:14px 16px}
+.search input{border:none;outline:none;font-family:'Inter',sans-serif;font-size:15px;color:#555;flex:1;background:transparent}
+.btn-add{background:#1a3a14;border:none;border-radius:12px;padding:16px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-family:'Inter',sans-serif}
+.animals-list{display:flex;flex-direction:column;gap:14px}
+.acard{border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .12s}
+.acard:active{transform:scale(0.97)}
+.acard-photo{background:#fff;height:168px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.acard-photo img{width:100%;height:100%;object-fit:cover}
+.acard-name{background:#1a3a14;padding:14px 16px;text-align:center}
+.acard-name span{color:#fff;font-size:15px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
+
+/* PROFILE */
+.ptitle{color:#fff;font-size:22px;font-weight:800;text-align:center;padding:16px 20px 4px;text-transform:uppercase;letter-spacing:0.05em}
+.pphoto-wrap{margin:12px 20px 0;position:relative}
+.pphoto{background:#fff;border-radius:14px;height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;position:relative}
+.pphoto img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pphoto input{display:none}
+.photo-rem{position:absolute;top:8px;right:8px;background:rgba(192,57,43,0.9);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2}
+.photo-rem.show{display:flex}
+.btn-edit{margin:14px 20px 0;background:#00D4D4;border:none;border-radius:12px;padding:15px;color:#0a2a2a;font-size:16px;font-weight:700;cursor:pointer;width:calc(100% - 40px);font-family:'Inter',sans-serif}
+.btn-edit.saving{background:#f0a500}
+.sec{padding:18px 20px 0}
+.sec-title{color:#fff;font-size:15px;font-weight:700;margin-bottom:10px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fgrid.full{grid-template-columns:1fr}
+.fcard{background:#1E3D1A;border-radius:10px;padding:11px 13px}
+.flabel{color:#7aab6a;font-size:11px;font-weight:500;margin-bottom:3px}
+.fval{color:#fff;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;background:transparent;border:none;width:100%;outline:none}
+.fval::placeholder{color:rgba(255,255,255,0.32);font-weight:400}
+.fval[readonly]{pointer-events:none}
+.fsel{background:transparent;border:none;color:rgba(255,255,255,0.4);font-size:15px;font-weight:700;font-family:'Inter',sans-serif;outline:none;width:100%;pointer-events:none}
+.fsel.on{pointer-events:all;color:#fff}
+.fsel option{background:#1a3a14;color:#fff}
+.btn-sec{background:#4A7040;border:none;border-radius:12px;padding:13px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-bottom:10px;font-family:'Inter',sans-serif}
+.vtable-wrap{background:#1E3D1A;border-radius:10px;overflow:hidden}
+.vtable{width:100%;border-collapse:collapse;font-size:12px}
+.vtable th{color:rgba(255,255,255,0.5);font-weight:500;padding:10px 8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.08)}
+.vtable td{color:#fff;padding:9px 6px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+.vtable tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:3px 7px;border-radius:4px;font-size:10px;font-weight:700}
+.badge.v{background:#1e8a1e;color:#fff}
+.badge.nv{background:#c0392b;color:#fff}
+.del-row{background:none;border:none;color:rgba(255,120,120,0.7);cursor:pointer;font-size:15px;padding:0 4px;font-weight:700}
+.files-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.fthumb{background:#C8D9C0;border-radius:8px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.fthumb img{width:100%;height:100%;object-fit:cover}
+.fthumb-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.btn-danger{background:#c0392b;border:none;border-radius:12px;padding:16px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;width:100%;margin-top:20px;font-family:'Inter',sans-serif}
+.btn-pdf{background:#1E3D1A;border:none;border-radius:12px;padding:16px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;width:100%;margin-top:10px;margin-bottom:32px;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* MODAIS */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-ov.open{display:flex}
+.modal-box{background:#253f20;border-radius:18px;padding:24px 20px;width:100%;max-width:340px}
+.modal-box h3{color:#fff;font-size:17px;font-weight:700;margin-bottom:8px;font-family:'Inter',sans-serif}
+.modal-box p{color:rgba(255,255,255,0.65);font-size:14px;margin-bottom:20px;line-height:1.5}
+.modal-btns{display:flex;gap:10px}
+.modal-btns button{flex:1;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.mbtn-no{background:#1a3a14;color:rgba(255,255,255,0.7)}
+.mbtn-yes{background:#c0392b;color:#fff}
+.mbtn-save{background:#00D4D4;color:#0a2a2a}
+.vac-ov{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;display:none;align-items:flex-end}
+.vac-ov.open{display:flex}
+.vac-sheet{background:#253f20;border-radius:20px 20px 0 0;padding:22px 20px 36px;width:100%}
+.vac-sheet h3{color:#fff;font-size:17px;font-weight:700;margin-bottom:14px}
+.mfield{margin-bottom:11px}
+.mfield label{color:#7aab6a;font-size:12px;font-weight:500;display:block;margin-bottom:3px}
+.mfield input,.mfield select{background:#1E3D1A;border:none;border-radius:8px;padding:11px 13px;color:#fff;font-size:14px;font-family:'Inter',sans-serif;width:100%;outline:none}
+.mfield select option{background:#1a3a14}
+
+/* TRASH */
+.trash-empty{color:rgba(255,255,255,0.4);text-align:center;padding:40px 20px;font-size:15px}
+.trash-card{background:#1E3D1A;border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.trash-card-name{color:#fff;font-size:15px;font-weight:700}
+.trash-card-date{color:rgba(255,255,255,0.45);font-size:12px;margin-top:2px}
+.trash-recover{background:#00D4D4;border:none;border-radius:8px;padding:8px 14px;color:#0a2a2a;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.trash-perm{background:none;border:1px solid rgba(255,100,100,0.4);border-radius:8px;padding:8px 12px;color:rgba(255,120,120,0.8);font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-left:6px}
+.icon-hint{color:rgba(255,255,255,0.35);font-size:10px;text-align:center;margin-bottom:4px}
+
+/* LOADING */
+.loading-wrap{position:fixed;inset:0;background:#1a3a14;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.loading-wrap.hide{display:none}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,0.2);border-top-color:#00D4D4;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap p{color:rgba(255,255,255,0.6);font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-wrap" id="loadingWrap">
+  <div class="spinner"></div>
+  <p>Carregando...</p>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offlineBanner">Você está offline — dados salvos localmente</div>
+
+<!-- SIDEBAR -->
+<div class="sb-ov" id="sbov" onclick="closeSB()"></div>
+<div class="sidebar" id="sb">
+  <div class="sb-user" id="sbUser"></div>
+  <div class="sb-item" onclick="goHome();closeSB()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Início
+  </div>
+  <div class="sb-item" onclick="openTrash();closeSB()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    Lixeira
+    <span class="trash-count" id="trashCount" style="display:none">0</span>
+  </div>
+  <div class="sb-item" onclick="logout()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sair
+  </div>
+</div>
+
+<!-- MODAIS -->
+<div class="modal-ov" id="mRemove">
+  <div class="modal-box">
+    <h3>Remover animal</h3>
+    <p>Você tem certeza que quer remover <strong id="mRemoveName" style="color:#fff"></strong>? O animal ficará na lixeira e poderá ser recuperado.</p>
+    <div class="modal-btns">
+      <button class="mbtn-no" onclick="closeRemoveModal()">Não</button>
+      <button class="mbtn-yes" onclick="confirmRemove()">Sim, remover</button>
+    </div>
+  </div>
+</div>
+<div class="vac-ov" id="mVac">
+  <div class="vac-sheet">
+    <h3>Adicionar vacina</h3>
+    <div class="mfield"><label>Data</label><input type="date" id="vD"></div>
+    <div class="mfield"><label>Vacina</label><input type="text" id="vN" placeholder="Nome da vacina"></div>
+    <div class="mfield"><label>Dose</label><input type="text" id="vDo" placeholder="Ex: 1ª dose, reforço"></div>
+    <div class="mfield"><label>Status</label>
+      <select id="vS"><option value="v">Vacinado</option><option value="nv">Não vacinado</option></select>
+    </div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="mbtn-no" onclick="closeVacModal()">Cancelar</button>
+      <button class="mbtn-save" onclick="saveVac()">Salvar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-ov" id="mFazenda">
+  <div class="modal-box">
+    <h3>Nome da fazenda</h3>
+    <div class="mfield" style="margin-bottom:16px">
+      <label>Nome</label>
+      <input type="text" id="fazendaInput" placeholder="Ex: Fazenda Vale Verde">
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn-no" onclick="closeFazendaModal()">Cancelar</button>
+      <button class="mbtn-save" onclick="saveFazendaName()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen active" id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <svg width="64" height="64" viewBox="0 0 100 100" fill="none">
+        <path d="M25 18C20 8 10 10 12 20C14 26 22 28 25 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M75 18C80 8 90 10 88 20C86 26 78 28 75 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="50" cy="50" rx="30" ry="26" stroke="white" stroke-width="3" fill="none"/>
+        <ellipse cx="50" cy="63" rx="14" ry="10" stroke="white" stroke-width="2.5" fill="none"/>
+        <circle cx="44" cy="61" r="2" fill="white"/><circle cx="56" cy="61" r="2" fill="white"/>
+        <path d="M44 68Q50 72 56 68" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <ellipse cx="37" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/>
+        <ellipse cx="63" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/>
+        <ellipse cx="50" cy="80" rx="6" ry="4" stroke="white" stroke-width="2" fill="none"/>
+        <line x1="50" y1="84" x2="50" y2="92" stroke="white" stroke-width="2.5"/>
+        <ellipse cx="50" cy="93" rx="5" ry="3" stroke="white" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+    <div class="login-title">Fazenda Vale Verde</div>
+    <div class="login-sub">Gestão de animais</div>
+    <div class="login-card">
+      <h2 id="loginCardTitle">Entrar na conta</h2>
+      <div class="lfield"><label>E-mail</label><input type="email" id="loginEmail" placeholder="seu@email.com"></div>
+      <div class="lfield"><label>Senha</label><input type="password" id="loginPass" placeholder="••••••••"></div>
+      <div class="lfield" id="nameField" style="display:none"><label>Nome</label><input type="text" id="loginName" placeholder="Seu nome"></div>
+      <button class="btn-login" id="loginBtn" onclick="doLogin()">Entrar</button>
+      <button class="btn-register" id="registerBtn" onclick="doRegister()" style="display:none">Criar conta</button>
+      <div class="login-error" id="loginError"></div>
+      <div class="login-toggle" id="loginToggle" onclick="toggleMode()">Não tem conta? <span>Criar conta</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="homeScreen">
+  <div class="hdr">
+    <div style="cursor:pointer" onclick="triggerIconUpload()">
+      <div id="headerCowWrap"><svg width="32" height="32" viewBox="0 0 100 100" fill="none"><path d="M25 18C20 8 10 10 12 20C14 26 22 28 25 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M75 18C80 8 90 10 88 20C86 26 78 28 75 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="50" rx="30" ry="26" stroke="white" stroke-width="3" fill="none"/><ellipse cx="50" cy="63" rx="14" ry="10" stroke="white" stroke-width="2.5" fill="none"/><circle cx="44" cy="61" r="2" fill="white"/><circle cx="56" cy="61" r="2" fill="white"/><path d="M44 68Q50 72 56 68" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><ellipse cx="37" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/><ellipse cx="63" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/><ellipse cx="50" cy="80" rx="6" ry="4" stroke="white" stroke-width="2" fill="none"/><line x1="50" y1="84" x2="50" y2="92" stroke="white" stroke-width="2.5"/><ellipse cx="50" cy="93" rx="5" ry="3" stroke="white" stroke-width="2" fill="none"/></svg></div>
+      <img id="headerCowImg" src="" style="display:none;width:32px;height:32px;border-radius:50%;object-fit:cover">
+    </div>
+    <input type="file" id="iconUpload" accept="image/*" style="display:none" onchange="loadIcon(event)">
+    <button class="burger" onclick="openSB()"><span></span><span></span><span></span></button>
+  </div>
+  <div class="scroll-area">
+    <div class="hero">
+      <div class="hero-icon" onclick="triggerIconUpload()">
+        <div id="heroCowWrap"><svg width="72" height="72" viewBox="0 0 100 100" fill="none"><path d="M25 18C20 8 10 10 12 20C14 26 22 28 25 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M75 18C80 8 90 10 88 20C86 26 78 28 75 26" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="50" cy="50" rx="30" ry="26" stroke="white" stroke-width="3" fill="none"/><ellipse cx="50" cy="63" rx="14" ry="10" stroke="white" stroke-width="2.5" fill="none"/><circle cx="44" cy="61" r="2" fill="white"/><circle cx="56" cy="61" r="2" fill="white"/><path d="M44 68Q50 72 56 68" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><ellipse cx="37" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/><ellipse cx="63" cy="44" rx="5" ry="6" stroke="white" stroke-width="2" fill="none"/><ellipse cx="50" cy="80" rx="6" ry="4" stroke="white" stroke-width="2" fill="none"/><line x1="50" y1="84" x2="50" y2="92" stroke="white" stroke-width="2.5"/><ellipse cx="50" cy="93" rx="5" ry="3" stroke="white" stroke-width="2" fill="none"/></svg></div>
+        <img id="heroCowImg" src="" style="display:none;width:72px;height:72px;border-radius:50%;object-fit:cover">
+        <div class="hero-icon-overlay"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+      </div>
+      <div class="icon-hint">Toque para trocar o ícone</div>
+      <h1 id="fazendaName" onclick="openFazendaModal()">Fazenda<br>Vale Verde</h1>
+      <div class="hero-edit-hint">Toque no nome para editar</div>
+      <p>Gestor: <span id="gestorName">—</span></p>
+      <div class="sync-status" id="syncStatus"></div>
+    </div>
+    <div class="hbody">
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Pesquisar o nome da vaca" id="srch" oninput="filterA()">
+      </div>
+      <button class="btn-add" onclick="newAnimal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar novo animal
+      </button>
+      <div class="animals-list" id="aList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE -->
+<div class="screen" id="profScreen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <button class="burger" onclick="openSB()"><span></span><span></span><span></span></button>
+  </div>
+  <div class="scroll-area">
+    <div class="ptitle" id="ptitle">NOME DA VACA</div>
+    <div class="pphoto-wrap">
+      <div class="pphoto" id="pphoto" onclick="clickPhoto()">
+        <svg id="camMain" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <img id="pmg" src="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+        <input type="file" accept="image/*" id="pfi" onchange="loadMainPhoto(event)">
+      </div>
+      <button class="photo-rem" id="photoRemBtn" onclick="removeMainPhoto(event)">✕</button>
+    </div>
+    <button class="btn-edit" id="editBtn" onclick="toggleEdit()">Editar</button>
+    <div class="sec">
+      <div class="sec-title">Identificação</div>
+      <div class="fgrid full" style="margin-bottom:8px">
+        <div class="fcard"><div class="flabel">Nome do animal</div><input class="fval" id="f-nome" placeholder="Nome do animal..." readonly></div>
+      </div>
+      <div class="fgrid">
+        <div class="fcard"><div class="flabel">Raça/espécie</div><input class="fval" id="f-raca" placeholder="Raça ou espécie" readonly></div>
+        <div class="fcard"><div class="flabel">Sexo</div><select class="fsel" id="f-sexo"><option value="">Fêmea / Macho</option><option value="Fêmea">Fêmea</option><option value="Macho">Macho</option></select></div>
+        <div class="fcard"><div class="flabel">Peso em Kg</div><input class="fval" id="f-peso" placeholder="Peso" readonly></div>
+        <div class="fcard"><div class="flabel">Data de nascimento</div><input class="fval" id="f-nasc" placeholder="Data" readonly></div>
+        <div class="fcard"><div class="flabel">Registro / Nº do brinco</div><input class="fval" id="f-brinco" placeholder="Número" readonly></div>
+        <div class="fcard"><div class="flabel">Lactação</div><input class="fval" id="f-lact" placeholder="Nº de Litros" readonly></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Linhagem</div>
+      <div class="fgrid">
+        <div class="fcard"><div class="flabel">Pai</div><input class="fval" id="f-pai" placeholder="Nome" readonly></div>
+        <div class="fcard"><div class="flabel">Mãe</div><input class="fval" id="f-mae" placeholder="Nome" readonly></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Histórico reprodutivo</div>
+      <div class="fgrid">
+        <div class="fcard"><div class="flabel">Idade da 1ª cobertura</div><input class="fval" id="f-idcob" placeholder="Idade" readonly></div>
+        <div class="fcard"><div class="flabel">Nº de Crias</div><input class="fval" id="f-crias" placeholder="Número total" readonly></div>
+        <div class="fcard"><div class="flabel">Data de cobertura</div><input class="fval" id="f-dcob" placeholder="Data" readonly></div>
+        <div class="fcard"><div class="flabel">Nome ou reg. do reprodutor</div><input class="fval" id="f-repr" placeholder="Nome" readonly></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">Controle Sanitário</div>
+      <button class="btn-sec" onclick="openVacModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar vacina
+      </button>
+      <div class="vtable-wrap">
+        <table class="vtable">
+          <thead><tr><th>Data</th><th>Vacina</th><th>Dose</th><th>Status</th><th></th></tr></thead>
+          <tbody id="vtbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec" style="margin-top:18px">
+      <div class="sec-title">Outras fotos e arquivos</div>
+      <button class="btn-sec" onclick="document.getElementById('ffi').click()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar arquivo
+      </button>
+      <input type="file" id="ffi" style="display:none" accept="image/*,.pdf" multiple onchange="addFiles(event)">
+      <div class="files-grid" id="fgrid"></div>
+    </div>
+    <div class="sec">
+      <button class="btn-danger" onclick="askRemove()">Remover animal</button>
+      <button class="btn-pdf" onclick="emitirPDF()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Emitir PDF do animal
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TRASH -->
+<div class="screen" id="trashScreen">
+  <div class="hdr">
+    <button class="back-btn" onclick="goHome()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <button class="burger" onclick="openSB()"><span></span><span></span><span></span></button>
+  </div>
+  <div class="scroll-area">
+    <div style="padding:20px">
+      <div class="sec-title" style="font-size:18px;margin-bottom:16px">Lixeira</div>
+      <div id="trashList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBlF3Mq9LbYBRl5TwXFBzj-uc7ZJf3OJuA",
+  authDomain: "fazenda-vale-verde.firebaseapp.com",
+  projectId: "fazenda-vale-verde",
+  storageBucket: "fazenda-vale-verde.firebasestorage.app",
+  messagingSenderId: "746703399413",
+  appId: "1:746703399413:web:1f048a8d0fc5112ecf18bc"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Habilita persistência offline
+enableIndexedDbPersistence(db).catch(()=>{});
+
+// Estado global
+let currentUser = null;
+let animals = [];
+let trash = [];
+let cur = null;
+let editing = false;
+let isRegisterMode = false;
+const fields = ['nome','raca','peso','nasc','brinco','lact','pai','mae','idcob','crias','dcob','repr'];
+
+// Detecta online/offline
+window.addEventListener('online', () => { document.getElementById('offlineBanner').classList.remove('show'); updateSyncStatus(true); syncPending(); });
+window.addEventListener('offline', () => { document.getElementById('offlineBanner').classList.add('show'); updateSyncStatus(false); });
+if (!navigator.onLine) document.getElementById('offlineBanner').classList.add('show');
+
+function updateSyncStatus(online) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = 'sync-status ' + (online ? 'sync-ok' : 'sync-pending');
+  el.textContent = online ? '✓ Sincronizado' : '⏳ Aguardando internet para sincronizar';
+}
+
+// AUTH STATE
+onAuthStateChanged(auth, user => {
+  document.getElementById('loadingWrap').classList.add('hide');
+  if (user) {
+    currentUser = user;
+    document.getElementById('sbUser').textContent = user.email;
+    document.getElementById('gestorName').textContent = user.displayName || user.email;
+    showScreen('homeScreen');
+    loadAnimals();
+    updateSyncStatus(navigator.onLine);
+  } else {
+    currentUser = null;
+    showScreen('loginScreen');
+  }
+});
+
+// LOGIN / REGISTER
+let loginMode = 'login';
+window.toggleMode = function() {
+  loginMode = loginMode === 'login' ? 'register' : 'login';
+  const isReg = loginMode === 'register';
+  document.getElementById('loginCardTitle').textContent = isReg ? 'Criar conta' : 'Entrar na conta';
+  document.getElementById('loginBtn').style.display = isReg ? 'none' : 'block';
+  document.getElementById('registerBtn').style.display = isReg ? 'block' : 'none';
+  document.getElementById('nameField').style.display = isReg ? 'block' : 'none';
+  document.getElementById('loginToggle').innerHTML = isReg ? 'Já tem conta? <span>Entrar</span>' : 'Não tem conta? <span>Criar conta</span>';
+  document.getElementById('loginError').textContent = '';
+};
+
+window.doLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginError').textContent = '';
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'E-mail ou senha incorretos.';
+  }
+};
+
+window.doRegister = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const name = document.getElementById('loginName').value.trim();
+  document.getElementById('loginError').textContent = '';
+  if (!name) { document.getElementById('loginError').textContent = 'Informe seu nome.'; return; }
+  if (pass.length < 6) { document.getElementById('loginError').textContent = 'Senha deve ter ao menos 6 caracteres.'; return; }
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await updateProfile(cred.user, { displayName: name });
+  } catch(e) {
+    document.getElementById('loginError').textContent = 'Erro ao criar conta. Verifique o e-mail.';
+  }
+};
+
+window.logout = async function() {
+  await signOut(auth);
+  animals = []; trash = [];
+  closeSB();
+};
+
+// FIRESTORE
+function userCol(name) {
+  return collection(db, 'users', currentUser.uid, name);
+}
+
+async function loadAnimals() {
+  try {
+    const snap = await getDocs(userCol('animals'));
+    animals = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const tsnap = await getDocs(userCol('trash'));
+    trash = tsnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    updateTrashCount();
+    renderAnimals();
+  } catch(e) {
+    // offline — usa cache do IndexedDB automaticamente
+    renderAnimals();
+  }
+}
+
+async function saveAnimal(a) {
+  try {
+    await setDoc(doc(db, 'users', currentUser.uid, 'animals', String(a.id)), a);
+  } catch(e) {
+    // salvo offline pelo IndexedDB
+  }
+}
+
+async function deleteAnimalFromDB(id) {
+  try {
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'animals', String(id)));
+  } catch(e) {}
+}
+
+async function saveTrash(a) {
+  try {
+    await setDoc(doc(db, 'users', currentUser.uid, 'trash', String(a.id)), a);
+  } catch(e) {}
+}
+
+async function deleteTrashFromDB(id) {
+  try {
+    await deleteDoc(doc(db, 'users', currentUser.uid, 'trash', String(id)));
+  } catch(e) {}
+}
+
+function syncPending() { loadAnimals(); }
+
+// RENDER
+window.renderAnimals = function(list) {
+  const g = document.getElementById('aList'); g.innerHTML = '';
+  (list || animals).forEach(a => {
+    const d = document.createElement('div'); d.className = 'acard';
+    d.innerHTML = `<div class="acard-photo">${a.foto ? `<img src="${a.foto}">` : `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`}</div><div class="acard-name"><span>${a.nome.toUpperCase()}</span></div>`;
+    d.onclick = () => openAnimal(a);
+    g.appendChild(d);
+  });
+};
+
+window.filterA = function() {
+  const q = document.getElementById('srch').value.toLowerCase();
+  renderAnimals(animals.filter(a => a.nome.toLowerCase().includes(q)));
+};
+
+window.openAnimal = function(a) {
+  cur = a; editing = false;
+  document.getElementById('ptitle').textContent = a.nome.toUpperCase();
+  fields.forEach(f => { const el = document.getElementById('f-' + f); if (el) { el.value = a[f] || ''; el.readOnly = true; } });
+  document.getElementById('f-sexo').value = a.sexo || '';
+  document.getElementById('f-sexo').classList.remove('on');
+  const img = document.getElementById('pmg'), cam = document.getElementById('camMain');
+  if (a.foto) { img.src = a.foto; img.style.display = 'block'; cam.style.display = 'none'; document.getElementById('photoRemBtn').classList.add('show'); }
+  else { img.style.display = 'none'; cam.style.display = 'block'; document.getElementById('photoRemBtn').classList.remove('show'); }
+  const eb = document.getElementById('editBtn'); eb.textContent = 'Editar'; eb.className = 'btn-edit';
+  document.getElementById('fgrid').innerHTML = '';
+  // Carrega vacinas
+  const tb = document.getElementById('vtbody'); tb.innerHTML = '';
+  if (a.vacinas) a.vacinas.forEach(v => addVacRow(v));
+  showScreen('profScreen');
+};
+
+window.newAnimal = function() {
+  const a = { id: Date.now(), nome: 'Novo Animal', foto: '', raca: '', sexo: '', peso: '', nasc: '', brinco: '', lact: '', pai: '', mae: '', idcob: '', crias: '', dcob: '', repr: '', vacinas: [] };
+  animals.push(a); renderAnimals(); openAnimal(a); setTimeout(() => toggleEdit(), 80);
+};
+
+window.goHome = function() { showScreen('homeScreen'); renderAnimals(); document.getElementById('srch').value = ''; };
+window.showScreen = function(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); const sa = document.getElementById(id).querySelector('.scroll-area'); if (sa) sa.scrollTop = 0; };
+window.openSB = function() { document.getElementById('sb').classList.add('open'); document.getElementById('sbov').classList.add('open'); };
+window.closeSB = function() { document.getElementById('sb').classList.remove('open'); document.getElementById('sbov').classList.remove('open'); };
+
+window.toggleEdit = function() {
+  editing = !editing;
+  const eb = document.getElementById('editBtn');
+  if (editing) {
+    eb.textContent = 'Salvar'; eb.classList.add('saving');
+    fields.forEach(f => { const el = document.getElementById('f-' + f); if (el) el.readOnly = false; });
+    document.getElementById('f-sexo').classList.add('on');
+  } else {
+    eb.textContent = 'Editar'; eb.classList.remove('saving');
+    fields.forEach(f => { const el = document.getElementById('f-' + f); if (el) { el.readOnly = true; if (cur) cur[f] = el.value; } });
+    if (cur) {
+      cur.sexo = document.getElementById('f-sexo').value;
+      document.getElementById('f-sexo').classList.remove('on');
+      // Salva vacinas no objeto
+      cur.vacinas = getVacinasFromTable();
+      document.getElementById('ptitle').textContent = cur.nome.toUpperCase();
+      saveAnimal(cur);
+      renderAnimals();
+    }
+  }
+};
+
+function getVacinasFromTable() {
+  const rows = []; document.querySelectorAll('#vtbody tr').forEach(tr => { const tds = tr.querySelectorAll('td'); if (tds.length >= 4) rows.push({ data: tds[0].textContent, vacina: tds[1].textContent, dose: tds[2].textContent, status: tds[3].querySelector('.badge').classList.contains('v') ? 'v' : 'nv' }); }); return rows;
+}
+
+function addVacRow(v) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${v.data}</td><td>${v.vacina}</td><td>${v.dose}</td><td><span class="badge ${v.status}">${v.status === 'v' ? 'Vacinado' : 'Não vacinado'}</span></td><td><button class="del-row" onclick="delVac(this)">✕</button></td>`;
+  document.getElementById('vtbody').appendChild(tr);
+}
+
+window.clickPhoto = function() { document.getElementById('pfi').click(); };
+window.loadMainPhoto = function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => {
+    const src = ev.target.result;
+    document.getElementById('pmg').src = src; document.getElementById('pmg').style.display = 'block';
+    document.getElementById('camMain').style.display = 'none';
+    document.getElementById('photoRemBtn').classList.add('show');
+    if (cur) { cur.foto = src; saveAnimal(cur); renderAnimals(); }
+  }; r.readAsDataURL(f);
+};
+window.removeMainPhoto = function(e) {
+  e.stopPropagation();
+  document.getElementById('pmg').style.display = 'none'; document.getElementById('pmg').src = '';
+  document.getElementById('camMain').style.display = 'block'; document.getElementById('photoRemBtn').classList.remove('show');
+  if (cur) { cur.foto = ''; saveAnimal(cur); renderAnimals(); }
+};
+
+window.askRemove = function() { if (!cur) return; document.getElementById('mRemoveName').textContent = cur.nome; document.getElementById('mRemove').classList.add('open'); };
+window.closeRemoveModal = function() { document.getElementById('mRemove').classList.remove('open'); };
+window.confirmRemove = async function() {
+  if (!cur) return;
+  const a = { ...cur, deletedAt: Date.now() };
+  trash.push(a); await saveTrash(a);
+  animals = animals.filter(x => x.id !== cur.id); await deleteAnimalFromDB(cur.id);
+  updateTrashCount(); closeRemoveModal(); goHome();
+};
+
+window.updateTrashCount = function() {
+  const tc = document.getElementById('trashCount');
+  if (trash.length > 0) { tc.style.display = 'inline'; tc.textContent = trash.length; }
+  else tc.style.display = 'none';
+};
+
+window.openTrash = function() { renderTrash(); showScreen('trashScreen'); };
+window.renderTrash = function() {
+  const tl = document.getElementById('trashList'); tl.innerHTML = '';
+  if (trash.length === 0) { tl.innerHTML = '<div class="trash-empty">Nenhum animal na lixeira</div>'; return; }
+  trash.forEach(a => {
+    const div = document.createElement('div'); div.className = 'trash-card';
+    div.innerHTML = `<div style="width:44px;height:44px;background:#1E3D1A;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center">${a.foto ? `<img src="${a.foto}" style="width:100%;height:100%;object-fit:cover">` : `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7aab6a" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`}</div><div style="flex:1"><div class="trash-card-name">${a.nome}</div><div class="trash-card-date">Removido em ${new Date(a.deletedAt).toLocaleDateString('pt-BR')}</div></div><button class="trash-recover" onclick="recoverAnimal(${a.id})">Recuperar</button><button class="trash-perm" onclick="permDelete(${a.id})">✕</button>`;
+    tl.appendChild(div);
+  });
+};
+window.recoverAnimal = async function(id) {
+  const idx = trash.findIndex(a => a.id === id); if (idx < 0) return;
+  const a = trash[idx]; delete a.deletedAt;
+  animals.push(a); await saveAnimal(a);
+  trash.splice(idx, 1); await deleteTrashFromDB(id);
+  updateTrashCount(); renderTrash(); renderAnimals();
+};
+window.permDelete = async function(id) {
+  trash = trash.filter(a => a.id !== id); await deleteTrashFromDB(id);
+  updateTrashCount(); renderTrash();
+};
+
+window.openVacModal = function() { document.getElementById('mVac').classList.add('open'); };
+window.closeVacModal = function() { document.getElementById('mVac').classList.remove('open'); };
+window.saveVac = function() {
+  const d = document.getElementById('vD').value, n = document.getElementById('vN').value.trim(), do2 = document.getElementById('vDo').value.trim(), s = document.getElementById('vS').value;
+  if (!n) return;
+  const dt = d ? d.split('-').reverse().slice(0, 2).join('/') : '—';
+  addVacRow({ data: dt, vacina: n, dose: do2 || '—', status: s });
+  document.getElementById('vD').value = ''; document.getElementById('vN').value = ''; document.getElementById('vDo').value = '';
+  closeVacModal();
+};
+window.delVac = function(btn) { btn.closest('tr').remove(); };
+
+window.addFiles = function(e) {
+  Array.from(e.target.files).forEach(f => {
+    const r = new FileReader(); r.onload = ev => {
+      const div = document.createElement('div'); div.className = 'fthumb';
+      if (f.type === 'application/pdf') { div.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4a7040" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>`; }
+      else { const img = document.createElement('img'); img.src = ev.target.result; img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px'; div.appendChild(img); }
+      const del = document.createElement('button'); del.className = 'fthumb-del'; del.textContent = '✕'; del.onclick = () => div.remove(); div.appendChild(del);
+      document.getElementById('fgrid').appendChild(div);
+    }; r.readAsDataURL(f);
+  });
+};
+
+window.triggerIconUpload = function() { document.getElementById('iconUpload').click(); };
+window.loadIcon = function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = ev => {
+    const src = ev.target.result;
+    document.getElementById('heroCowWrap').style.display = 'none'; document.getElementById('heroCowImg').src = src; document.getElementById('heroCowImg').style.display = 'block';
+    document.getElementById('headerCowWrap').style.display = 'none'; document.getElementById('headerCowImg').src = src; document.getElementById('headerCowImg').style.display = 'block';
+  }; r.readAsDataURL(f);
+};
+
+window.openFazendaModal = function() {
+  document.getElementById('fazendaInput').value = document.getElementById('fazendaName').innerText.replace('\n', ' ');
+  document.getElementById('mFazenda').classList.add('open');
+  setTimeout(() => document.getElementById('fazendaInput').focus(), 100);
+};
+window.closeFazendaModal = function() { document.getElementById('mFazenda').classList.remove('open'); };
+window.saveFazendaName = function() {
+  const val = document.getElementById('fazendaInput').value.trim(); if (!val) return;
+  const words = val.split(' '); let display = val;
+  if (words.length >= 2) { const mid = Math.ceil(words.length / 2); display = words.slice(0, mid).join(' ') + '<br>' + words.slice(mid).join(' '); }
+  document.getElementById('fazendaName').innerHTML = display;
+  closeFazendaModal();
+};
+
+window.emitirPDF = function() {
+  if (!cur) return;
+  const vacinhas = getVacinasFromTable();
+  const fazenda = document.getElementById('fazendaName').innerText.replace('\n', ' ');
+  const doc2 = new jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, margin = 18, cw = W - margin * 2;
+  let y = margin;
+  const cv = [26,58,20], cvm = [58,100,52], ct = [30,30,30], cc = [120,120,120];
+  doc2.setFillColor(...cv); doc2.rect(0,0,W,28,'F');
+  doc2.setTextColor(255,255,255); doc2.setFont('helvetica','bold'); doc2.setFontSize(16); doc2.text(fazenda,margin,12);
+  doc2.setFont('helvetica','normal'); doc2.setFontSize(9); doc2.text('Gestor: ' + (currentUser.displayName||currentUser.email),margin,19); doc2.text(new Date().toLocaleDateString('pt-BR'),W-margin,19,{align:'right'});
+  y=38; doc2.setTextColor(...cv); doc2.setFont('helvetica','bold'); doc2.setFontSize(20); doc2.text(cur.nome.toUpperCase(),W/2,y,{align:'center'}); y+=3;
+  doc2.setDrawColor(...cvm); doc2.setLineWidth(0.5); doc2.line(margin,y,W-margin,y); y+=8;
+  if (cur.foto) { try { doc2.addImage(cur.foto,'JPEG',W/2-25,y,50,40); y+=46; } catch(e){} }
+  const secao = t => { doc2.setFillColor(...cv); doc2.rect(margin,y,cw,7,'F'); doc2.setTextColor(255,255,255); doc2.setFont('helvetica','bold'); doc2.setFontSize(10); doc2.text(t,margin+3,y+5); y+=11; };
+  const campo = (l,v) => { if(!v)return; if(y>270){doc2.addPage();y=margin;} doc2.setTextColor(...cc); doc2.setFont('helvetica','normal'); doc2.setFontSize(9); doc2.text(l,margin,y); doc2.setTextColor(...ct); doc2.setFont('helvetica','bold'); doc2.setFontSize(10); doc2.text(String(v),margin+60,y); doc2.setDrawColor(220,220,220); doc2.setLineWidth(0.2); doc2.line(margin,y+1.5,W-margin,y+1.5); y+=8; };
+  secao('Identificação'); campo('Raça / Espécie',cur.raca); campo('Sexo',cur.sexo); campo('Peso',cur.peso?cur.peso+' kg':''); campo('Data de nascimento',cur.nasc); campo('Registro / Nº do brinco',cur.brinco); campo('Lactação',cur.lact?cur.lact+' litros':''); y+=4;
+  secao('Linhagem'); campo('Pai',cur.pai); campo('Mãe',cur.mae); y+=4;
+  secao('Histórico Reprodutivo'); campo('Idade da 1ª cobertura',cur.idcob); campo('Nº de Crias',cur.crias); campo('Data de cobertura',cur.dcob); campo('Reprodutor',cur.repr); y+=4;
+  if (vacinhas.length > 0) { if(y>240){doc2.addPage();y=margin;} secao('Controle Sanitário'); const cols=[margin,margin+22,margin+72,margin+102]; const hdrs=['Data','Vacina','Dose','Status']; doc2.setFillColor(200,220,195); doc2.rect(margin,y-1,cw,7,'F'); doc2.setTextColor(...cv); doc2.setFont('helvetica','bold'); doc2.setFontSize(9); hdrs.forEach((h,i)=>doc2.text(h,cols[i],y+4.5)); y+=9; vacinhas.forEach((v,idx)=>{if(y>275){doc2.addPage();y=margin;} if(idx%2===0){doc2.setFillColor(245,250,244);doc2.rect(margin,y-1,cw,7,'F');} doc2.setTextColor(...ct); doc2.setFont('helvetica','normal'); doc2.setFontSize(9); doc2.text(v.data,cols[0],y+4); doc2.text(v.vacina,cols[1],y+4); doc2.text(v.dose,cols[2],y+4); const isV=v.status==='v'; doc2.setFillColor(...(isV?[30,138,30]:[192,57,43])); doc2.roundedRect(cols[3]-1,y+0.5,22,5.5,1,1,'F'); doc2.setTextColor(255,255,255); doc2.setFont('helvetica','bold'); doc2.setFontSize(8); doc2.text(isV?'Vacinado':'Não vacinado',cols[3]+10,y+4.5,{align:'center'}); y+=8;}); }
+  const tp=doc2.internal.getNumberOfPages(); for(let i=1;i<=tp;i++){doc2.setPage(i);doc2.setFillColor(...cv);doc2.rect(0,287,W,10,'F');doc2.setTextColor(255,255,255);doc2.setFont('helvetica','normal');doc2.setFontSize(8);doc2.text(fazenda+' · '+new Date().toLocaleString('pt-BR'),margin,293);doc2.text(i+'/'+tp,W-margin,293,{align:'right'});}
+  doc2.save(`ficha-${cur.nome.toLowerCase().replace(/\s+/g,'-')}.pdf`);
+};
+
+// Registra service worker
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
